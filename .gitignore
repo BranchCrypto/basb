@@ -1,0 +1,11 @@
+data/
+sandbox-data/
+.codegraph/
+*.exe
+*.zip
+frontend/dist/
+frontend/node_modules/
+build/bin/
+build/windows/
+.DS_Store
+*.log
