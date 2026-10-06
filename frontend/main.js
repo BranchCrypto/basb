@@ -28,15 +28,9 @@ let observingName = ''
 let pollTimer = null
 /** @type {boolean} */
 let loadingSession = false
-/** @type {'history'} */
-let currentView = 'history'
 
 const FILTERS = [
   { id: 'all', label: '全部' },
-  { id: 'file', label: '文件' },
-  { id: 'network', label: '网络' },
-  { id: 'shell', label: '命令' },
-  { id: 'process', label: '进程' },
   { id: 'sensitive', label: '风险' },
 ]
 
@@ -217,14 +211,6 @@ function showToast(msg, actionLabel) {
   }, 4000)
 }
 
-function setView(view) {
-  currentView = view
-  $('view-history').hidden = view !== 'history'
-  document.querySelectorAll('.chrome-nav-item, .nav-item').forEach((btn) => {
-    btn.classList.toggle('active', btn.dataset.view === view)
-  })
-}
-
 function setObservingUI(on, name) {
   isObserving = on
   if (!on) observingId = null
@@ -232,9 +218,7 @@ function setObservingUI(on, name) {
   const cta = $('btn-new')
   cta.disabled = on
   cta.textContent = on ? '监测进行中…' : '启动监测'
-  $('btn-empty-new').disabled = on
   $('btn-run').disabled = on
-  $('nav-live').hidden = !on
   document.body.classList.toggle('is-observing', on)
 }
 
@@ -242,7 +226,7 @@ function startLiveTimers() {
   stopLiveTimers()
   pollTimer = setInterval(() => {
     if (observingId && selectedId === observingId) {
-      refreshSession(observingId, { quiet: true, keepDetails: true })
+      refreshSession(observingId, { quiet: true })
     } else if (observingId) {
       listSessions({ quiet: true })
     }
@@ -278,7 +262,7 @@ async function listSessions({ quiet = false } = {}) {
     const sessions = await a.ListSessions()
     el.innerHTML = ''
     if (!sessions || sessions.length === 0) {
-      el.innerHTML = `<div class="muted pad">暂无会话<br /><span class="hint">启动监测后将显示在此</span></div>`
+      el.innerHTML = `<div class="muted pad">暂无进程</div>`
       return []
     }
     for (const s of sessions) {
@@ -338,24 +322,28 @@ function renderSensitive(items) {
       const risk = humanRisk(it.risk) || '—'
       const riskClass = it.risk ? `risk-${escapeHtml(it.risk)}` : ''
       return `
-    <div class="row sens" data-risk-idx="${idx}">
+    <div class="row sens" data-risk-idx="${idx}" role="button" tabindex="0">
       <span class="risk-badge ${riskClass}">${escapeHtml(risk)}</span>
       <span class="what">${escapeHtml(humanType(it.type))}</span>
       <span class="target">${escapeHtml(it.target || '—')}</span>
-      <button type="button" class="btn link risk-detail" data-risk-idx="${idx}">详情</button>
     </div>`
     })
     .join('')
-  el.querySelectorAll('.risk-detail').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation()
-      const i = Number(btn.dataset.riskIdx)
-      const item = items[i]
-      if (!item) return
+  el.querySelectorAll('.row.sens').forEach((row) => {
+    const jumpToTimeline = () => {
+      const i = Number(row.dataset.riskIdx)
+      if (!items[i]) return
       activeFilter = 'sensitive'
       renderFilters()
       renderTimeline(cachedEvents)
       $('summary-section')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+    row.addEventListener('click', jumpToTimeline)
+    row.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        jumpToTimeline()
+      }
     })
   })
 }
@@ -364,30 +352,15 @@ function eventMatchesFilter(ev, filter) {
   if (filter === 'all') return true
   const cat = (ev.category || '').toLowerCase()
   const type = (ev.type || '').toLowerCase()
-  if (filter === 'file') return cat === 'file' || cat === 'fs' || type.startsWith('file.')
-  if (filter === 'network') {
-    return (
-      cat === 'network' ||
-      cat === 'net' ||
-      cat === 'http' ||
-      cat === 'download' ||
-      cat === 'upload' ||
-      type.startsWith('network.') ||
-      type.startsWith('http.')
-    )
-  }
-  if (filter === 'sensitive') {
-    const risk = (ev.risk || '').toUpperCase()
-    return (
-      risk === 'HIGH' ||
-      risk === 'CRITICAL' ||
-      cat === 'sensitive' ||
-      cat === 'credential' ||
-      type.startsWith('sensitive.') ||
-      type.startsWith('credential.')
-    )
-  }
-  return cat === filter || type.startsWith(filter + '.')
+  const risk = (ev.risk || '').toUpperCase()
+  return (
+    risk === 'HIGH' ||
+    risk === 'CRITICAL' ||
+    cat === 'sensitive' ||
+    cat === 'credential' ||
+    type.startsWith('sensitive.') ||
+    type.startsWith('credential.')
+  )
 }
 
 function renderFilters() {
@@ -442,24 +415,6 @@ function renderTimeline(events) {
   }
 }
 
-function fillCounts(c = {}) {
-  const file =
-    (c.file_create || 0) + (c.file_write || 0) + (c.file_delete || 0) + (c.file_read || 0)
-  $('n-file').textContent = file
-  $('n-net').textContent = c.network || 0
-  $('n-shell').textContent = c.shell || 0
-  $('n-sens').textContent = c.sensitive || 0
-}
-
-/** Vertical flow keeps sections open; kept as no-ops for call sites. */
-function setAccordion(_section, _open) {}
-
-function resetAccordions(_opts) {}
-
-function scrollToTimeline() {
-  $('summary-section')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-}
-
 function showReportShell(timeLabel, subtitle) {
   $('empty').hidden = true
   $('report').hidden = false
@@ -475,7 +430,7 @@ function hideReport() {
   selectedId = null
 }
 
-async function refreshSession(id, { quiet = false, keepDetails = false } = {}) {
+async function refreshSession(id, { quiet = false } = {}) {
   if (loadingSession && quiet) return
   const a = api()
   if (!a) return
@@ -494,12 +449,7 @@ async function refreshSession(id, { quiet = false, keepDetails = false } = {}) {
     const when = friendlyWhen(meta.started_at)
     const statusLabel = live ? '监测中' : humanStatus(meta.status)
     showReportShell(when || '—', `${name}${statusLabel ? ' · ' + statusLabel : ''}`)
-    if (!keepDetails) {
-      const hasRisk = (report?.sensitive_events || []).length > 0
-      resetAccordions({ expandRisk: hasRisk })
-    }
 
-    fillCounts(report?.counts || {})
     $('tree').textContent = renderTree(report?.process_tree || [])
     renderSensitive(report?.sensitive_events || [])
 
@@ -516,13 +466,11 @@ async function refreshSession(id, { quiet = false, keepDetails = false } = {}) {
   }
 }
 
-async function selectSession(id, { switchView = true } = {}) {
+async function selectSession(id) {
   selectedId = id
   activeFilter = 'all'
   renderFilters()
-  if (switchView) setView('history')
   await listSessions()
-  resetAccordions({ expandRisk: false })
   await refreshSession(id)
 }
 
@@ -534,16 +482,13 @@ async function onRunReady(info) {
   selectedId = info.id
   activeFilter = 'all'
   renderFilters()
-  setView('history')
-  resetAccordions({ expandRisk: false })
   showReportShell(friendlyWhen(new Date().toISOString()) || '刚刚', `${observingName} · 监测中`)
-  fillCounts({})
   $('tree').textContent = '等待进程数据…'
   cachedEvents = []
   renderTimeline([])
   await listSessions()
   startLiveTimers()
-  await refreshSession(info.id, { quiet: true, keepDetails: true })
+  await refreshSession(info.id, { quiet: true })
 }
 
 async function pickInto(inputId, kind) {
@@ -562,28 +507,14 @@ async function pickInto(inputId, kind) {
 
 function openRunDialog() {
   if (isObserving) {
-    showToast('已有监测会话在进行，结束后再启动新会话')
+    showToast('已有监测在进行，结束后再启动')
     return
   }
   $('run-error').hidden = true
   $('run-dialog').showModal()
 }
 
-document.querySelectorAll('.chrome-nav-item, .nav-item').forEach((btn) => {
-  btn.addEventListener('click', () => setView(btn.dataset.view))
-})
-
 $('btn-new').addEventListener('click', openRunDialog)
-$('btn-empty-new').addEventListener('click', openRunDialog)
-
-document.querySelectorAll('.fact[data-filter]').forEach((fact) => {
-  fact.addEventListener('click', () => {
-    activeFilter = fact.dataset.filter
-    renderFilters()
-    renderTimeline(cachedEvents)
-    scrollToTimeline()
-  })
-})
 
 $('btn-cancel').addEventListener('click', () => {
   $('run-dialog').close()
@@ -636,7 +567,7 @@ $('run-form').addEventListener('submit', async (e) => {
     return
   }
   if (isObserving) {
-    errEl.textContent = '已有监测会话在进行'
+    errEl.textContent = '已有监测在进行'
     errEl.hidden = false
     return
   }
@@ -646,11 +577,8 @@ $('run-form').addEventListener('submit', async (e) => {
   observingName = basename(agent) || 'Agent'
   observingId = null
   setObservingUI(true, observingName)
-  setView('history')
   selectedId = null
   showReportShell(friendlyWhen(new Date().toISOString()) || '刚刚', `${observingName} · 正在启动`)
-  fillCounts({})
-  resetAccordions({ expandRisk: false })
   $('tree').textContent = '启动中…'
   cachedEvents = []
   renderTimeline([])
@@ -666,7 +594,6 @@ $('run-form').addEventListener('submit', async (e) => {
     if (finishedId) {
       selectedId = finishedId
       await refreshSession(finishedId)
-      setView('history')
     }
     const label = basename(info?.agent) || finishedId || observingName
     showToast(info?.status === 'failed' ? `监测失败：${label}` : `监测完成：${label}`)
@@ -677,7 +604,6 @@ $('run-form').addEventListener('submit', async (e) => {
     errEl.textContent = String(err)
     errEl.hidden = false
     hideReport()
-    setView('history')
   }
 })
 
@@ -714,7 +640,7 @@ function wireTitlebar() {
   })
   $('btn-win-close')?.addEventListener('click', () => Quit())
   $('titlebar')?.addEventListener('dblclick', async (e) => {
-    if (e.target.closest('.chrome-controls, .titlebar-controls, .chrome-nav')) return
+    if (e.target.closest('.chrome-controls, .titlebar-controls')) return
     WindowToggleMaximise()
     await syncMaximisedState()
   })
@@ -727,8 +653,6 @@ async function boot() {
   wireTitlebar()
   await syncMaximisedState()
   renderFilters()
-  resetAccordions({ expandRisk: false })
-  setView('history')
   const ok = await pingHealth()
   await listSessions()
   if (!ok) return

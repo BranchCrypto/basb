@@ -5,12 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Basb</title>
     <link rel="icon" type="image/svg+xml" href="./assets/logo.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
@@ -21,12 +15,7 @@
             <img src="./assets/logo.svg" width="18" height="18" alt="" />
             <span>Basb</span>
           </div>
-          <nav class="chrome-nav" aria-label="主导航">
-            <button type="button" class="chrome-nav-item active" data-view="history" id="nav-history">
-              会话
-              <span class="live-pill" id="nav-live" hidden>监测中</span>
-            </button>
-          </nav>
+          <span class="chrome-section">进程</span>
         </div>
         <div class="chrome-controls">
           <button type="button" class="chrome-btn" id="btn-win-min" title="最小化" aria-label="最小化">
@@ -59,12 +48,7 @@
             </aside>
 
             <div class="history-main" id="history-main">
-              <div class="empty-panel" id="empty">
-                <p class="empty-kicker">审计沙盒</p>
-                <h2>选择会话</h2>
-                <p class="lead">从左侧打开历史会话，或启动一次新的 Agent 监测。</p>
-                <button type="button" class="btn primary" id="btn-empty-new">启动监测</button>
-              </div>
+              <div class="empty-panel" id="empty"></div>
 
               <div class="report" id="report" hidden>
                 <header class="report-head">
@@ -76,25 +60,6 @@
                     <button type="button" class="btn ghost" id="btn-export" disabled>保存审计</button>
                   </div>
                 </header>
-
-                <section class="facts-tray" id="facts" aria-label="事件摘要">
-                  <button type="button" class="fact" data-filter="file">
-                    <span class="fact-n" id="n-file">0</span>
-                    <span class="fact-l">文件</span>
-                  </button>
-                  <button type="button" class="fact" data-filter="network">
-                    <span class="fact-n" id="n-net">0</span>
-                    <span class="fact-l">网络</span>
-                  </button>
-                  <button type="button" class="fact" data-filter="shell">
-                    <span class="fact-n" id="n-shell">0</span>
-                    <span class="fact-l">命令</span>
-                  </button>
-                  <button type="button" class="fact warn" data-filter="sensitive">
-                    <span class="fact-n" id="n-sens">0</span>
-                    <span class="fact-l">风险</span>
-                  </button>
-                </section>
 
                 <div class="report-flow" id="details">
                   <section class="flow-section" id="highlight" hidden data-section="risk">
@@ -135,7 +100,6 @@
     <dialog id="run-dialog">
       <form id="run-form">
         <h2>启动 Agent 监测</h2>
-        <p class="dialog-lead">指定要纳入沙盒监测的 Agent 可执行文件。运行期间行为事件将实时写入会话。</p>
         <label>Agent 路径
           <div class="path-row">
             <input name="agent" id="input-agent" required placeholder="选择 Agent 可执行文件" />
