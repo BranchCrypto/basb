@@ -53,18 +53,18 @@
               <div class="report" id="report" hidden>
                 <header class="report-head">
                   <div class="report-titles">
-                    <div class="report-time" id="title">—</div>
+                    <h1 class="report-time" id="title">—</h1>
                     <p id="subtitle" class="muted"></p>
                   </div>
                   <div class="actions">
-                    <button type="button" class="btn ghost" id="btn-export" disabled>保存审计</button>
+                    <button type="button" class="btn ghost" id="btn-export" disabled>导出记录</button>
                   </div>
                 </header>
 
                 <div class="report-flow" id="details">
                   <section class="flow-section" id="highlight" hidden data-section="risk">
                     <div class="flow-head">
-                      <h3>风险项</h3>
+                      <h3>风险</h3>
                     </div>
                     <div class="flow-body" id="risk-body">
                       <div class="sens-list" id="sensitive"></div>
@@ -99,10 +99,10 @@
 
     <dialog id="run-dialog">
       <form id="run-form">
-        <h2>启动 Agent 监测</h2>
+        <h2>启动监测</h2>
         <label>Agent 路径
           <div class="path-row">
-            <input name="agent" id="input-agent" required placeholder="选择 Agent 可执行文件" />
+            <input name="agent" id="input-agent" required placeholder="选择要监测的 Agent" />
             <button type="button" class="btn ghost" id="btn-pick-agent">浏览…</button>
           </div>
         </label>
@@ -118,7 +118,7 @@
             <input name="args" placeholder="可选，空格分隔" />
           </label>
           <label>会话 ID
-            <input name="session" placeholder="可选，自定义会话标识" />
+            <input name="session" placeholder="可选，自定义标识" />
           </label>
         </details>
         <div class="dialog-actions">
@@ -131,7 +131,7 @@
 
     <div class="toast" id="toast" hidden>
       <div id="toast-msg"></div>
-      <button type="button" class="btn ghost" id="toast-action" hidden>打开所在文件夹</button>
+      <button type="button" class="btn ghost" id="toast-action" hidden>打开文件夹</button>
     </div>
     <script type="module" src="./main.js"></script>
   </body>

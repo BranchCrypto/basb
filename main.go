@@ -17,7 +17,7 @@ func main() {
 	app := NewApp()
 
 	err := wails.Run(&options.App{
-		Title:     "Basb — Agent 行为防火墙",
+		Title:     "Basb — Agent 行为监测",
 		Width:     1100,
 		Height:    720,
 		MinWidth:  800,

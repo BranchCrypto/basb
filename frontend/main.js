@@ -322,7 +322,7 @@ function renderSensitive(items) {
       const risk = humanRisk(it.risk) || '—'
       const riskClass = it.risk ? `risk-${escapeHtml(it.risk)}` : ''
       return `
-    <div class="row sens" data-risk-idx="${idx}" role="button" tabindex="0">
+    <div class="row sens ${riskClass}" data-risk-idx="${idx}" role="button" tabindex="0">
       <span class="risk-badge ${riskClass}">${escapeHtml(risk)}</span>
       <span class="what">${escapeHtml(humanType(it.type))}</span>
       <span class="target">${escapeHtml(it.target || '—')}</span>
@@ -526,14 +526,14 @@ $('btn-pick-dir').addEventListener('click', () => pickInto('input-workdir', 'dir
 $('btn-export').addEventListener('click', async () => {
   if (!selectedId || !api()) return
   if (isObserving && selectedId === observingId) {
-    showToast('监测结束后才能导出审计包')
+    showToast('监测结束后才能导出')
     return
   }
   $('btn-export').disabled = true
   try {
     const path = await api().ExportSession(selectedId)
     lastExportPath = path
-    showToast('审计包已导出', '打开文件夹')
+    showToast('审计记录已导出', '打开文件夹')
   } catch (e) {
     lastExportPath = null
     showToast(String(e))
